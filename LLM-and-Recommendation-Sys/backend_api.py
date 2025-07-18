@@ -10,7 +10,7 @@ from datetime import datetime
 
 # --- 1. Configuration ---
 INVENTRA_API_BASE_URL = "https://api.inventra.ca/api"
-PRODUCTS_CACHE_FILE = 'product_cache.json'
+PRODUCTS_CACHE_FILE = './product_cache.json'
 
 # --- 2. Application State ---
 app_state = {
@@ -26,9 +26,13 @@ from recommendation_system.preference_rec.preference_rec import filter_products_
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    if os.path.exists(PRODUCTS_CACHE_FILE):
+    # Ensure the file path is correct by using the absolute path
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    cache_file_path = os.path.join(current_dir, PRODUCTS_CACHE_FILE)
+
+    if os.path.exists(cache_file_path):
         print("Loading products from cache...")
-        with open(PRODUCTS_CACHE_FILE, 'r') as f:
+        with open(cache_file_path, 'r') as f:
             app_state["products_data"] = json.load(f)
     else:
         print("No product cache found. Fetching from API...")
@@ -56,7 +60,10 @@ async def fetch_and_cache_products():
             response.raise_for_status()
             products = response.json()
             app_state["products_data"] = products
-            with open(PRODUCTS_CACHE_FILE, 'w') as f:
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            cache_file_path = os.path.join(current_dir, PRODUCTS_CACHE_FILE)
+            
+            with open(cache_file_path, 'w') as f:
                 json.dump(products, f, indent=2)
             print(f"Cached {len(products.get('products', []))} products")
         except httpx.RequestError as e:
