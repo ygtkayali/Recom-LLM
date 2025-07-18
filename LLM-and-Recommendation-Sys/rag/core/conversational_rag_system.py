@@ -9,10 +9,11 @@ import os
 import argparse
 import json
 import tiktoken
+import sys
 from datetime import datetime
 from typing import Optional, Dict, List, Any
 from dotenv import load_dotenv
-from langchain.callbacks import get_openai_callback
+from langchain_community.callbacks.manager import get_openai_callback
 
 # Fix SSL certificate issues on Windows
 if 'SSL_CERT_FILE' in os.environ:
@@ -26,10 +27,14 @@ from langchain_openai import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 from langchain_community.vectorstores.pgvector import PGVector
 
+# Add parent directory to path for imports
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+sys.path.insert(0, parent_dir)
+
 # Import our modular components
 import config
 from rag_chain import get_rag_chain, get_conversational_rag_chain
-from utils import setup_environment, test_db_connection
+import utils
 
 load_dotenv()
 
@@ -109,7 +114,7 @@ class SmartBeautyRAGSystem:
         print(f"🗄️ Loading vector store: {self.collection_name}")
         
         # Test database connection
-        if not test_db_connection(config.DATABASE_CONNECTION_STRING):
+        if not utils.test_db_connection(config.DATABASE_CONNECTION_STRING):
             print("❌ Failed to connect to database")
             return None
         
@@ -509,7 +514,7 @@ def run_example_queries(rag_system: SmartBeautyRAGSystem):
 def main():
     """Main entry point for the conversational RAG system."""
     # Check environment setup
-    if not setup_environment():
+    if not utils.setup_environment():
         print("Environment setup failed. Please fix the issues above and try again.")
         return
     
@@ -530,7 +535,7 @@ def main():
     # Test connection only
     if args.test_connection:
         print("Testing database connection...")
-        success = test_db_connection(config.DATABASE_CONNECTION_STRING)
+        success = utils.test_db_connection(config.DATABASE_CONNECTION_STRING)
         if success:
             print("✅ Database connection test passed!")
         else:
