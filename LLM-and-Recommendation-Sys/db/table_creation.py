@@ -77,6 +77,25 @@ CREATE TABLE IF NOT EXISTS concepts (
 );
 """
 
+# SQL for creating the users table
+CREATE_USERS_TABLE = """
+CREATE TABLE IF NOT EXISTS users (
+    -- Core Identifier
+    id SERIAL PRIMARY KEY,
+
+    -- User preference profile as text for embedding generation
+    embedding_text TEXT NOT NULL,
+
+    -- The Embedding Vector for Semantic Search
+    -- MUST be the same dimension as products and concepts embeddings
+    embedding VECTOR(384),
+
+    -- Timestamps for tracking
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+"""
+
 # SQL for creating indexes on products table
 CREATE_PRODUCTS_INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_products_name ON products (name);",
@@ -102,9 +121,17 @@ CREATE_CONCEPTS_INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_concepts_embedding_hnsw ON concepts USING HNSW (embedding vector_cosine_ops);"
 ]
 
+# SQL for creating indexes on users table
+CREATE_USERS_INDEXES = [
+    "CREATE INDEX IF NOT EXISTS idx_users_created_at ON users (created_at);",
+    # The CRITICAL index for fast vector similarity search for user profiles
+    "CREATE INDEX IF NOT EXISTS idx_users_embedding_hnsw ON users USING HNSW (embedding vector_cosine_ops);"
+]
+
 # SQL for dropping tables (if needed)
 DROP_PRODUCTS_TABLE = "DROP TABLE IF EXISTS products CASCADE;"
 DROP_CONCEPTS_TABLE = "DROP TABLE IF EXISTS concepts CASCADE;"
+DROP_USERS_TABLE = "DROP TABLE IF EXISTS users CASCADE;"
 
 
 def create_extension_if_not_exists():
@@ -129,6 +156,7 @@ def drop_tables():
             with conn.cursor() as cursor:
                 cursor.execute(DROP_PRODUCTS_TABLE)
                 cursor.execute(DROP_CONCEPTS_TABLE)
+                cursor.execute(DROP_USERS_TABLE)
                 conn.commit()
                 print("✅ Dropped existing tables")
                 return True
@@ -150,6 +178,10 @@ def create_tables():
                 cursor.execute(CREATE_CONCEPTS_TABLE)
                 print("✅ Concepts table created")
                 
+                # Create users table
+                cursor.execute(CREATE_USERS_TABLE)
+                print("✅ Users table created")
+                
                 conn.commit()
                 return True
     except Exception as e:
@@ -168,6 +200,10 @@ def create_indexes():
                     
                 # Create indexes for concepts table
                 for index_sql in CREATE_CONCEPTS_INDEXES:
+                    cursor.execute(index_sql)
+                    
+                # Create indexes for users table
+                for index_sql in CREATE_USERS_INDEXES:
                     cursor.execute(index_sql)
                     
                 conn.commit()
@@ -203,6 +239,17 @@ def verify_tables():
                     print("✅ Concepts table verified")
                 else:
                     print("❌ Concepts table not found")
+                    return False
+                
+                # Check users table
+                cursor.execute("""
+                    SELECT COUNT(*) FROM information_schema.tables 
+                    WHERE table_name = 'users'
+                """)
+                if cursor.fetchone()[0] == 1:
+                    print("✅ Users table verified")
+                else:
+                    print("❌ Users table not found")
                     return False
                 
                 return True

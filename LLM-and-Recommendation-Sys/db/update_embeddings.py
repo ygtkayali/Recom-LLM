@@ -31,7 +31,7 @@ def parse_args():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(description="Update embeddings in the database.")
     parser.add_argument("--batch_size", type=int, default=10, help="Number of items to process at once")
-    parser.add_argument("--table", type=str, default="all", choices=["all", "products", "concepts"],
+    parser.add_argument("--table", type=str, default="all", choices=["all", "products", "concepts", "users"],
                         help="Which table to update")
     return parser.parse_args()
 
@@ -85,6 +85,26 @@ def get_concepts_without_embeddings(conn, batch_size):
         """, (batch_size,))
         return cursor.fetchall()
 
+def get_users_without_embeddings(conn, batch_size):
+    """
+    Get users from the database that don't have embeddings.
+    
+    Args:
+        conn: PostgreSQL connection object
+        batch_size: Number of users to fetch at once
+        
+    Returns:
+        List of tuples (id, embedding_text)
+    """
+    with conn.cursor() as cursor:
+        cursor.execute("""
+        SELECT id, embedding_text
+        FROM users
+        WHERE embedding IS NULL AND embedding_text IS NOT NULL
+        LIMIT %s
+        """, (batch_size,))
+        return cursor.fetchall()
+
 def update_product_embedding(conn, product_id, embedding):
     """
     Update the embedding for a product in the database.
@@ -118,6 +138,23 @@ def update_concept_embedding(conn, concept_id, embedding):
         SET embedding = %s::vector
         WHERE id = %s
         """, (embedding, concept_id))
+
+def update_user_embedding(conn, user_id, embedding):
+    """
+    Update the embedding for a user in the database.
+    
+    Args:
+        conn: PostgreSQL connection object
+        user_id: ID of the user to update
+        embedding: Vector embedding to store
+    """
+    with conn.cursor() as cursor:
+        # Pass the embedding as is - PostgreSQL will handle the conversion
+        cursor.execute("""
+        UPDATE users
+        SET embedding = %s::vector
+        WHERE id = %s
+        """, (embedding, user_id))
 
 def update_products(conn, embedding_model, batch_size):
     """
@@ -205,6 +242,49 @@ def update_concepts(conn, embedding_model, batch_size):
     
     return total_updated
 
+def update_users(conn, embedding_model, batch_size):
+    """
+    Update user embeddings in batches.
+    
+    Args:
+        conn: PostgreSQL connection object
+        embedding_model: The embedding model to use
+        batch_size: Number of users to process at once
+        
+    Returns:
+        Number of users updated
+    """
+    total_updated = 0
+    while True:
+        # Get batch of users without embeddings
+        users = get_users_without_embeddings(conn, batch_size)
+        if not users:
+            print("No more users without embeddings.")
+            break
+        
+        print(f"Processing batch of {len(users)} users...")
+        for i, (user_id, text) in enumerate(users, 1):
+            try:
+                # Generate embedding
+                embedding = embedding_model.embed_query(text)
+                
+                # Convert to string format that pgvector can parse
+                embedding_str = str(embedding)
+                
+                # Update the user
+                update_user_embedding(conn, user_id, embedding_str)
+                total_updated += 1
+                print(f"Updated embedding for user {user_id} ({i}/{len(users)} in batch)")
+            except Exception as e:
+                print(f"Error updating embedding for user {user_id}: {e}")
+                conn.rollback()
+        
+        # Commit after each batch
+        conn.commit()
+        print(f"Committed batch of {len(users)} users.")
+    
+    return total_updated
+
 def main():
     """Main function to update embeddings."""
     args = parse_args()
@@ -220,6 +300,7 @@ def main():
     try:
         products_updated = 0
         concepts_updated = 0
+        users_updated = 0
         
         # Update products
         if args.table in ["all", "products"]:
@@ -235,8 +316,15 @@ def main():
                 concepts_updated = update_concepts(conn, embedding_model, args.batch_size)
                 print(f"Total concepts updated with embeddings: {concepts_updated}")
         
+        # Update users
+        if args.table in ["all", "users"]:
+            print("\n--- Processing Users ---")
+            with get_database_manager().get_db_connection() as conn:
+                users_updated = update_users(conn, embedding_model, args.batch_size)
+                print(f"Total users updated with embeddings: {users_updated}")
+        
         print("\nDatabase connections closed.")
-        print(f"Summary: Updated {products_updated} products and {concepts_updated} concepts.")
+        print(f"Summary: Updated {products_updated} products, {concepts_updated} concepts, and {users_updated} users.")
     except Exception as e:
         print(f"Error connecting to PostgreSQL: {e}")
         import traceback

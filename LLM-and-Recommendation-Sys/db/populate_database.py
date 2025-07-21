@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 """
-Comprehensive script to populate both products and concepts tables from JSON files.
+Comprehensive script to populate products, concepts, and users tables from JSON files.
 
 This script:
 1. Populates products table from product_cache.json
 2. Populates concepts table from concept_descriptions.json  
-3. Provides options to truncate tables before insertion
-4. Shows detailed progress and statistics
+3. Populates users table from user preferences (if provided)
+4. Provides options to truncate tables before insertion
+5. Shows detailed progress and statistics
 
 Table Schemas:
 PRODUCTS:
@@ -18,8 +19,11 @@ CONCEPTS:
 - id (int), concept_type, name, description
 - embedding (vector), created_at, updated_at
 
+USERS:
+- id (serial), embedding_text, embedding (vector), created_at, updated_at
+
 Usage:
-python populate_database.py [--truncate-products] [--truncate-concepts] [--batch-size 500]
+python populate_database.py [--truncate-products] [--truncate-concepts] [--truncate-users] [--batch-size 500]
 """
 import os
 import sys
@@ -132,6 +136,7 @@ def extract_product_data(product: Dict[str, Any]) -> Dict[str, Any]:
     
     # Map product cache fields to database schema
     extracted_data = {
+        'id': product.get('id'),  # Include the original ID from JSON
         'name': safe_get(product, 'name', 'Unknown Product'),
         'key_benefits': safe_get(product, 'keyBenefits') or safe_get(product, 'key_benefits'),
         'description': safe_get(product, 'description'),
@@ -200,6 +205,70 @@ def extract_concept_data(concept: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def extract_user_data(user_preferences: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Extract and format user preference data for the users table schema.
+    
+    Args:
+        user_preferences: Dictionary containing user preferences
+        
+    Returns:
+        Dictionary with embedding_text for the user
+    """
+    # This function will create the formatted text as shown in the example
+    profile_parts = []
+    
+    # Skin Profile section
+    if 'skin_profile' in user_preferences:
+        skin_profile = user_preferences['skin_profile']
+        skin_parts = []
+        
+        if 'skin_type' in skin_profile:
+            skin_parts.append(f"{skin_profile['skin_type']} skin type")
+        
+        if 'concerns' in skin_profile:
+            for concern in skin_profile['concerns']:
+                skin_parts.append(f"treating {concern}")
+        
+        if skin_parts:
+            profile_parts.append(f"[Skin Profile]. {'. '.join(skin_parts)}.")
+    
+    # Hair Profile section  
+    if 'hair_profile' in user_preferences:
+        hair_profile = user_preferences['hair_profile']
+        hair_parts = []
+        
+        if 'goals' in hair_profile:
+            for goal in hair_profile['goals']:
+                hair_parts.append(f"wants to {goal}")
+        
+        if hair_parts:
+            profile_parts.append(f"[Hair Profile]. {'. '.join(hair_parts)}.")
+    
+    # Preferences section
+    if 'preferences' in user_preferences:
+        preferences = user_preferences['preferences']
+        pref_parts = []
+        
+        if 'product_preferences' in preferences:
+            for pref in preferences['product_preferences']:
+                pref_parts.append(f"prefers {pref}")
+        
+        if 'allergies' in preferences:
+            for allergy in preferences['allergies']:
+                pref_parts.append(f"allergic to {allergy}")
+        
+        if pref_parts:
+            profile_parts.append(f"[Preferences]. {'. '.join(pref_parts)}.")
+    
+    # Join all sections
+    embedding_text = " ".join(profile_parts)
+    
+    return {
+        'embedding_text': embedding_text
+    }
+
+
 def insert_products_batch(products: List[Dict[str, Any]], batch_size: int = 500) -> int:
     """
     Insert products into the database in batches.
@@ -229,21 +298,37 @@ def insert_products_batch(products: List[Dict[str, Any]], batch_size: int = 500)
                     
                     insert_query = """
                         INSERT INTO products (
-                            name, key_benefits, description, active_content, 
+                            id, name, key_benefits, description, active_content, 
                             ingredients_text, how_to_use, embeddings_text, price, stock_status, 
                             is_on_sale, country
                         ) VALUES (
-                            %(name)s, %(key_benefits)s, %(description)s, %(active_content)s,
+                            %(id)s, %(name)s, %(key_benefits)s, %(description)s, %(active_content)s,
                             %(ingredients_text)s, %(how_to_use)s, %(embeddings_text)s, %(price)s, %(stock_status)s,
                             %(is_on_sale)s, %(country)s
                         )
+                        ON CONFLICT (id) DO UPDATE SET
+                            name = EXCLUDED.name,
+                            key_benefits = EXCLUDED.key_benefits,
+                            description = EXCLUDED.description,
+                            active_content = EXCLUDED.active_content,
+                            ingredients_text = EXCLUDED.ingredients_text,
+                            how_to_use = EXCLUDED.how_to_use,
+                            embeddings_text = EXCLUDED.embeddings_text,
+                            price = EXCLUDED.price,
+                            stock_status = EXCLUDED.stock_status,
+                            is_on_sale = EXCLUDED.is_on_sale,
+                            country = EXCLUDED.country,
+                            updated_at = CURRENT_TIMESTAMP
                     """
                     
                     batch_data = []
                     for product in batch:
                         try:
                             extracted_data = extract_product_data(product)
-                            batch_data.append(extracted_data)
+                            if extracted_data['id'] is not None:  # Ensure we have an ID
+                                batch_data.append(extracted_data)
+                            else:
+                                print(f"⚠️ Skipping product without ID: {product.get('name', 'Unknown')}")
                         except Exception as e:
                             print(f"⚠️ Error processing product {product.get('name', 'Unknown')}: {e}")
                             continue
@@ -323,6 +408,59 @@ def insert_concepts_batch(concepts: List[Dict[str, Any]]) -> int:
         return 0
 
 
+def insert_users_batch(user_profiles: List[Dict[str, Any]]) -> int:
+    """
+    Insert user profiles into the database.
+    
+    Args:
+        user_profiles: List of user preference dictionaries
+        
+    Returns:
+        Number of users successfully inserted
+    """
+    if not user_profiles:
+        print("⚠️ No user profiles to insert")
+        return 0
+    
+    try:
+        with get_database_manager().get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                print(f"📦 Processing {len(user_profiles)} user profiles...")
+                
+                insert_query = """
+                    INSERT INTO users (
+                        embedding_text
+                    ) VALUES (
+                        %(embedding_text)s
+                    )
+                """
+                
+                batch_data = []
+                for user_profile in user_profiles:
+                    try:
+                        extracted_data = extract_user_data(user_profile)
+                        if extracted_data['embedding_text']:  # Ensure we have text
+                            batch_data.append(extracted_data)
+                        else:
+                            print(f"⚠️ Skipping user profile without embedding text")
+                    except Exception as e:
+                        print(f"⚠️ Error processing user profile: {e}")
+                        continue
+                
+                if batch_data:
+                    cursor.executemany(insert_query, batch_data)
+                    conn.commit()
+                    print(f"✅ Successfully inserted {len(batch_data)} user profiles")
+                    return len(batch_data)
+                else:
+                    print("❌ No valid user profiles to insert")
+                    return 0
+                
+    except Exception as e:
+        print(f"❌ Error during users insert: {e}")
+        return 0
+
+
 def get_file_paths() -> Tuple[str, str]:
     """
     Get the paths to the JSON files.
@@ -358,7 +496,7 @@ def show_table_statistics():
     print("\n📊 Current Table Statistics:")
     print("-" * 40)
     
-    for table_name in ['products', 'concepts']:
+    for table_name in ['products', 'concepts', 'users']:
         if check_table_exists(table_name):
             row_count = get_table_row_count(table_name)
             
@@ -380,14 +518,16 @@ def show_table_statistics():
 
 
 def main():
-    """Main function to populate both tables."""
+    """Main function to populate all tables."""
     parser = argparse.ArgumentParser(description='Populate SmartBeauty database from JSON files')
     parser.add_argument('--truncate-products', action='store_true', 
                        help='Truncate products table before inserting')
     parser.add_argument('--truncate-concepts', action='store_true', 
                        help='Truncate concepts table before inserting')
+    parser.add_argument('--truncate-users', action='store_true', 
+                       help='Truncate users table before inserting')
     parser.add_argument('--truncate-all', action='store_true',
-                       help='Truncate both tables before inserting')
+                       help='Truncate all tables before inserting')
     parser.add_argument('--batch-size', type=int, default=500,
                        help='Batch size for products insertion (default: 500)')
     parser.add_argument('--dry-run', action='store_true',
@@ -396,6 +536,8 @@ def main():
                        help='Only populate products table')
     parser.add_argument('--concepts-only', action='store_true',
                        help='Only populate concepts table')
+    parser.add_argument('--users-only', action='store_true',
+                       help='Only populate users table')
     parser.add_argument('--show-stats', action='store_true',
                        help='Show current table statistics and exit')
     
@@ -419,10 +561,12 @@ def main():
     
     # Check if required tables exist
     tables_to_check = []
-    if not args.concepts_only:
+    if not args.concepts_only and not args.users_only:
         tables_to_check.append('products')
-    if not args.products_only:
+    if not args.products_only and not args.users_only:
         tables_to_check.append('concepts')
+    if not args.products_only and not args.concepts_only:
+        tables_to_check.append('users')
     
     for table_name in tables_to_check:
         if not check_table_exists(table_name):
@@ -536,6 +680,70 @@ def main():
                 print(f"  Processing time: {duration.total_seconds():.2f} seconds")
                 
                 success_results['concepts'] = inserted_count > 0
+    
+    # Handle users
+    if not args.products_only and not args.concepts_only:
+        print(f"\n👤 USERS TABLE POPULATION")
+        print("=" * 40)
+        
+        # Truncate if requested
+        if args.truncate_users or args.truncate_all:
+            if truncate_table('users'):
+                print("✅ Users table truncated")
+            else:
+                print("❌ Failed to truncate users table")
+                return False
+        
+        # For now, we'll create a sample user profile to demonstrate the functionality
+        # In production, this would load from user preference data
+        sample_user_profiles = [
+            {
+                'skin_profile': {
+                    'skin_type': 'Sensitive skin type, which is prone to irritation, redness, and reactions',
+                    'concerns': ['rosacea, a condition characterized by persistent redness, flushing, and bumps']
+                },
+                'hair_profile': {
+                    'goals': [
+                        'improve hair shine and radiance',
+                        'add volume and body to hair',
+                        'get heat protection from styling tools',
+                        'get color protection for color-treated hair'
+                    ]
+                },
+                'preferences': {
+                    'product_preferences': [
+                        'clean beauty products, formulated without ingredients like sulfates and parabens',
+                        'new and innovative trending products',
+                        'fragrance-free or unscented products'
+                    ],
+                    'allergies': ['parabens']
+                }
+            }
+        ]
+        
+        print(f"📊 Loaded {len(sample_user_profiles)} user profiles (sample data)")
+        
+        if args.dry_run:
+            print("\n🔍 Dry run mode - showing sample user profile data:")
+            print("-" * 30)
+            sample_user = extract_user_data(sample_user_profiles[0])
+            for key, value in sample_user.items():
+                display_value = str(value)[:200] + '...' if len(str(value)) > 200 else str(value)
+                print(f"  {key}: {display_value}")
+        else:
+            # Insert user profiles
+            start_time = datetime.now()
+            inserted_count = insert_users_batch(sample_user_profiles)
+            end_time = datetime.now()
+            duration = end_time - start_time
+            
+            print(f"\n🎯 Users Summary:")
+            print(f"  User profiles processed: {len(sample_user_profiles)}")
+            print(f"  User profiles inserted: {inserted_count}")
+            print(f"  Success rate: {(inserted_count/len(sample_user_profiles)*100):.1f}%")
+            print(f"  Processing time: {duration.total_seconds():.2f} seconds")
+            
+            success_results['users'] = inserted_count > 0
     
     # Show final statistics if not dry run
     if not args.dry_run:
