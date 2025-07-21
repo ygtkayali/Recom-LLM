@@ -23,7 +23,7 @@ PRODUCTS_COLLECTION_NAME = "products"  # Table name for productse
 CLASS_DESCRIPTIONS_COLLECTION_NAME = "skin_conditions"
 
 # --- Embedding Model Configuration ---
-SENTENCE_TRANSFORMER_MODEL_NAME = "all-mpnet-base-v2"
+SENTENCE_TRANSFORMER_MODEL_NAME = "all-MiniLM-L6-v2"
 
 # --- LLM Configuration ---
 LLM_MODEL_NAME = "gpt-3.5-turbo"  # or "gpt-3.5-turbo" etc.

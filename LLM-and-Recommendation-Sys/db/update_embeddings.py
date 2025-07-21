@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 """
-Script to update the embeddings in the products and skin_conditions tables.
+Script to update the embeddings in the products and concepts tables.
 
 This script:
-1. Processes entries from both products and skin_conditions tables that don't have embeddings
+1. Processes entries from both products and concepts tables that don't have embeddings
 2. Uses HuggingFace model to create embeddings
 3. Updates the database with the embeddings
 
 Usage:
-python update_embeddings.py [--batch_size 10] [--table all|products|skin_conditions]
+python update_embeddings.py [--batch_size 10] [--table all|products|concepts]
 
 Optional arguments:
 --batch_size: Number of items to process at once (default: 10)
@@ -31,7 +31,7 @@ def parse_args():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(description="Update embeddings in the database.")
     parser.add_argument("--batch_size", type=int, default=10, help="Number of items to process at once")
-    parser.add_argument("--table", type=str, default="all", choices=["all", "products", "skin_conditions"],
+    parser.add_argument("--table", type=str, default="all", choices=["all", "products", "concepts"],
                         help="Which table to update")
     return parser.parse_args()
 
@@ -54,24 +54,24 @@ def get_products_without_embeddings(conn, batch_size):
         batch_size: Number of products to fetch at once
         
     Returns:
-        List of tuples (id, embedding_text_concatenated)
+        List of tuples (id, embeddings_text)
     """
     with conn.cursor() as cursor:
         cursor.execute("""
-        SELECT id, embedding_text_concatenated
+        SELECT id, embeddings_text
         FROM products
-        WHERE embedding_vector IS NULL AND embedding_text_concatenated IS NOT NULL
+        WHERE embedding IS NULL AND embeddings_text IS NOT NULL
         LIMIT %s
         """, (batch_size,))
         return cursor.fetchall()
 
-def get_skin_conditions_without_embeddings(conn, batch_size):
+def get_concepts_without_embeddings(conn, batch_size):
     """
-    Get skin conditions from the database that don't have embeddings.
+    Get concepts from the database that don't have embeddings.
     
     Args:
         conn: PostgreSQL connection object
-        batch_size: Number of skin conditions to fetch at once
+        batch_size: Number of concepts to fetch at once
         
     Returns:
         List of tuples (id, description)
@@ -79,8 +79,8 @@ def get_skin_conditions_without_embeddings(conn, batch_size):
     with conn.cursor() as cursor:
         cursor.execute("""
         SELECT id, description
-        FROM skin_conditions
-        WHERE embedding_vector IS NULL
+        FROM concepts
+        WHERE embedding IS NULL
         LIMIT %s
         """, (batch_size,))
         return cursor.fetchall()
@@ -98,26 +98,26 @@ def update_product_embedding(conn, product_id, embedding):
         # Pass the embedding as is - PostgreSQL will handle the conversion
         cursor.execute("""
         UPDATE products
-        SET embedding_vector = %s::vector
+        SET embedding = %s::vector
         WHERE id = %s
         """, (embedding, product_id))
 
-def update_skin_condition_embedding(conn, condition_id, embedding):
+def update_concept_embedding(conn, concept_id, embedding):
     """
-    Update the embedding for a skin condition in the database.
+    Update the embedding for a concept in the database.
     
     Args:
         conn: PostgreSQL connection object
-        condition_id: ID of the skin condition to update
+        concept_id: ID of the concept to update
         embedding: Vector embedding to store
     """
     with conn.cursor() as cursor:
         # Pass the embedding as is - PostgreSQL will handle the conversion
         cursor.execute("""
-        UPDATE skin_conditions
-        SET embedding_vector = %s::vector
+        UPDATE concepts
+        SET embedding = %s::vector
         WHERE id = %s
-        """, (embedding, condition_id))
+        """, (embedding, concept_id))
 
 def update_products(conn, embedding_model, batch_size):
     """
@@ -162,28 +162,28 @@ def update_products(conn, embedding_model, batch_size):
     
     return total_updated
 
-def update_skin_conditions(conn, embedding_model, batch_size):
+def update_concepts(conn, embedding_model, batch_size):
     """
-    Update skin condition embeddings in batches.
+    Update concept embeddings in batches.
     
     Args:
         conn: PostgreSQL connection object
         embedding_model: The embedding model to use
-        batch_size: Number of skin conditions to process at once
+        batch_size: Number of concepts to process at once
         
     Returns:
-        Number of skin conditions updated
+        Number of concepts updated
     """
     total_updated = 0
     while True:
-        # Get batch of skin conditions without embeddings
-        conditions = get_skin_conditions_without_embeddings(conn, batch_size)
-        if not conditions:
-            print("No more skin conditions without embeddings.")
+        # Get batch of concepts without embeddings
+        concepts = get_concepts_without_embeddings(conn, batch_size)
+        if not concepts:
+            print("No more concepts without embeddings.")
             break
         
-        print(f"Processing batch of {len(conditions)} skin conditions...")
-        for i, (condition_id, description) in enumerate(conditions, 1):
+        print(f"Processing batch of {len(concepts)} concepts...")
+        for i, (concept_id, description) in enumerate(concepts, 1):
             try:
                 # Generate embedding
                 embedding = embedding_model.embed_query(description)
@@ -191,17 +191,17 @@ def update_skin_conditions(conn, embedding_model, batch_size):
                 # Convert to string format that pgvector can parse
                 embedding_str = str(embedding)
                 
-                # Update the skin condition
-                update_skin_condition_embedding(conn, condition_id, embedding_str)
+                # Update the concept
+                update_concept_embedding(conn, concept_id, embedding_str)
                 total_updated += 1
-                print(f"Updated embedding for skin condition {condition_id} ({i}/{len(conditions)} in batch)")
+                print(f"Updated embedding for concept {concept_id} ({i}/{len(concepts)} in batch)")
             except Exception as e:
-                print(f"Error updating embedding for skin condition {condition_id}: {e}")
+                print(f"Error updating embedding for concept {concept_id}: {e}")
                 conn.rollback()
         
         # Commit after each batch
         conn.commit()
-        print(f"Committed batch of {len(conditions)} skin conditions.")
+        print(f"Committed batch of {len(concepts)} concepts.")
     
     return total_updated
 
@@ -209,38 +209,34 @@ def main():
     """Main function to update embeddings."""
     args = parse_args()
     
-    # Import the utilities for database connection
-    from utils import create_db_connection_from_config
+    # Import the new connection system
+    from db.connection import get_database_manager
     
     # Load embedding model
     embedding_model = create_embeddings_model()
     
-    # Connect to PostgreSQL
+    # Connect to PostgreSQL using new connection system
     print("Connecting to PostgreSQL...")
     try:
-        conn = create_db_connection_from_config()
-        if not conn:
-            print("Failed to connect to database")
-            return
-        
         products_updated = 0
-        skin_conditions_updated = 0
+        concepts_updated = 0
         
         # Update products
         if args.table in ["all", "products"]:
             print("\n--- Processing Products ---")
-            products_updated = update_products(conn, embedding_model, args.batch_size)
-            print(f"Total products updated with embeddings: {products_updated}")
+            with get_database_manager().get_db_connection() as conn:
+                products_updated = update_products(conn, embedding_model, args.batch_size)
+                print(f"Total products updated with embeddings: {products_updated}")
         
-        # Update skin conditions
-        if args.table in ["all", "skin_conditions"]:
-            print("\n--- Processing Skin Conditions ---")
-            skin_conditions_updated = update_skin_conditions(conn, embedding_model, args.batch_size)
-            print(f"Total skin conditions updated with embeddings: {skin_conditions_updated}")
+        # Update concepts
+        if args.table in ["all", "concepts"]:
+            print("\n--- Processing Concepts ---")
+            with get_database_manager().get_db_connection() as conn:
+                concepts_updated = update_concepts(conn, embedding_model, args.batch_size)
+                print(f"Total concepts updated with embeddings: {concepts_updated}")
         
-        conn.close()
-        print("\nDatabase connection closed.")
-        print(f"Summary: Updated {products_updated} products and {skin_conditions_updated} skin conditions.")
+        print("\nDatabase connections closed.")
+        print(f"Summary: Updated {products_updated} products and {concepts_updated} concepts.")
     except Exception as e:
         print(f"Error connecting to PostgreSQL: {e}")
         import traceback

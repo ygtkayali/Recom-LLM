@@ -1,0 +1,29 @@
+[
+  {
+    "id": 1,
+    "name": "PURGENE ACNE BYE GEL",
+    "key_benefits": "Targets acne and acne scars; deeply hydrates and nourishes skin; helps regulate oil and moisture balance; supports skin barrier against external factors and inflammation.",
+    "description": "Purgene Acne Bye Gel is formulated with Tea Tree Oil, Salicylic Acid, Olive Oil, Glycerin, and Vitamin E to treat and prevent acne, soothe inflammation, and deeply hydrate the skin. It promotes skin renewal and protects the barrier by regulating moisture levels. Suitable for all skin types and ideal for acne-prone skin.",
+    "active_content": "Tea Tree Oil, Salicylic Acid, Olive Oil, Glycerin, Vitamin E",
+    "similarity": 0.5777486218363879,
+    "type": "product"
+  },
+  {
+    "id": 27,
+    "name": "DENEFIS DEEP FACE CLEANSING FOAMING GEL",
+    "key_benefits": "Denefis Deep Face Cleansing Foaming Gel deeply cleanses pores, reduces blackheads, balances oil production, and soothes skin with salicylic acid and botanical extracts.",
+    "description": "Its 1% Salicylic Acid and Hamamelis Virginia Extract content serve to balance the skin's sebum rate, which helps to minimize the greasy look while also preventing acne and blackheads at their worst by thoroughly cleansing the skin. Panthenol (Vitamin B5) hydrates the skin and enhances the function of the skin barrier, while Allantoin, Calendula Officinalis Flower Oil and Glycyrrhiza Glabra Root Extract helps to protect and calm the skin.",
+    "active_content": "Salicylic Acid, Allantoin, Glycerin, Panthenol, Aloe Vera Extract, Hamamelis Virginia extract, Licorice Root Extract, Calendula Officinalis Flower Oil, Benzophenone-4",
+    "similarity": 0.5552265247297551,
+    "type": "product"
+  },
+  {
+    "id": 31,
+    "name": "DENEFIS ANTI BLEMISH SERUM",
+    "key_benefits": "Denefis Anti Blemish Serum reduces acne and blemishes, calms inflammation, unclogs pores, controls excess oil, and promotes clearer, smoother skin.",
+    "description": "The Anti-Blemish care serum, which is enhanced with active components like Alpha Arbutin, Glycyrrhiza Glabra Root Extract, Vitamin B3 (Niacinamide), and Peptides, helps to brighten, regulate, and lessen the severity of spots. One of its components, Hyaluronic Acid, is intended to hydrate the skin.",
+    "active_content": "Niacinamide, Alpha Arbutin, Acetyl Hexapeptide-8, Allantoin, Panthenol, Hyaluronic Acid, Licorice Root Extract",
+    "similarity": 0.5513156323840847,
+    "type": "product"
+  }
+]

@@ -34,7 +34,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Search using vector similarity.")
     parser.add_argument("query", type=str, help="Search query text")
     parser.add_argument("--top_n", type=int, default=5, help="Number of top results to return")
-    parser.add_argument("--table", type=str, default="all", choices=["all", "products", "skin_conditions"],
+    parser.add_argument("--table", type=str, default="all", choices=["all", "products", "concepts"],
                         help="Which table to search")
     parser.add_argument("--output", type=str, default="search_results.json", help="Output JSON file")
     return parser.parse_args()
@@ -62,7 +62,6 @@ def search_products(conn, query_embedding, top_n):
         List of dictionaries with product info and similarity score
     """
     # Convert embedding to string format that pgvector can parse
-    import numpy as np
     query_embedding_str = str(query_embedding)
     
     with conn.cursor() as cursor:
@@ -70,30 +69,34 @@ def search_products(conn, query_embedding, top_n):
         SELECT 
             id, 
             name, 
-            original_product_data,
-            1 - (embedding_vector <=> %s::vector) AS similarity
+            key_benefits,
+            description,
+            active_content,
+            1 - (embedding <=> %s::vector) AS similarity
         FROM products
-        WHERE embedding_vector IS NOT NULL
+        WHERE embedding IS NOT NULL
         ORDER BY similarity DESC
         LIMIT %s
         """, (query_embedding_str, top_n))
         
         results = []
         for row in cursor.fetchall():
-            product_id, name, original_data, similarity = row
+            product_id, name, key_benefits, description, active_content, similarity = row
             results.append({
                 "id": product_id,
                 "name": name,
+                "key_benefits": key_benefits,
+                "description": description,
+                "active_content": active_content,
                 "similarity": float(similarity),  # Convert Decimal to float for JSON serialization
-                "original_data": original_data,
                 "type": "product"
             })
         
         return results
 
-def search_skin_conditions(conn, query_embedding, top_n):
+def search_concepts(conn, query_embedding, top_n):
     """
-    Search for skin conditions by vector similarity.
+    Search for concepts by vector similarity.
     
     Args:
         conn: PostgreSQL connection object
@@ -101,10 +104,9 @@ def search_skin_conditions(conn, query_embedding, top_n):
         top_n: Number of top results to return
         
     Returns:
-        List of dictionaries with skin condition info and similarity score
+        List of dictionaries with concept info and similarity score
     """
     # Convert embedding to string format that pgvector can parse
-    import numpy as np
     query_embedding_str = str(query_embedding)
     
     with conn.cursor() as cursor:
@@ -113,32 +115,34 @@ def search_skin_conditions(conn, query_embedding, top_n):
             id, 
             name,
             description,
-            1 - (embedding_vector <=> %s::vector) AS similarity
-        FROM skin_conditions
-        WHERE embedding_vector IS NOT NULL
+            concept_type,
+            1 - (embedding <=> %s::vector) AS similarity
+        FROM concepts
+        WHERE embedding IS NOT NULL
         ORDER BY similarity DESC
         LIMIT %s
         """, (query_embedding_str, top_n))
         
         results = []
         for row in cursor.fetchall():
-            condition_id, name, description, similarity = row
+            concept_id, name, description, concept_type, similarity = row
             results.append({
-                "id": condition_id,
+                "id": concept_id,
                 "name": name,
                 "description": description[:200] + "..." if len(description) > 200 else description,  # Truncate long descriptions
+                "concept_type": concept_type,
                 "similarity": float(similarity),  # Convert Decimal to float for JSON serialization
-                "type": "skin_condition"
+                "type": "concept"
             })
         
         return results
 
 def main():
-    """Main function to search for products and skin conditions."""
+    """Main function to search for products and concepts."""
     args = parse_args()
     
-    # Import the utilities for database connection
-    from utils import create_db_connection_from_config
+    # Import the new connection system
+    from db.connection import get_database_manager
     
     # Load embedding model and generate query embedding
     embedding_model = create_embeddings_model()
@@ -148,27 +152,22 @@ def main():
     # Connect to PostgreSQL and search
     print("Connecting to PostgreSQL...")
     try:
-        conn = create_db_connection_from_config()
-        if not conn:
-            print("Failed to connect to database")
-            return
-        
         # Initialize results containers
         product_results = []
-        skin_condition_results = []
+        concept_results = []
         
         # Search products if requested
         if args.table in ["all", "products"]:
-            product_results = search_products(conn, query_embedding, args.top_n)
+            with get_database_manager().get_db_connection() as conn:
+                product_results = search_products(conn, query_embedding, args.top_n)
             
-        # Search skin conditions if requested
-        if args.table in ["all", "skin_conditions"]:
-            skin_condition_results = search_skin_conditions(conn, query_embedding, args.top_n)
-        
-        conn.close()
+        # Search concepts if requested
+        if args.table in ["all", "concepts"]:
+            with get_database_manager().get_db_connection() as conn:
+                concept_results = search_concepts(conn, query_embedding, args.top_n)
         
         # Combine and sort results by similarity
-        all_results = product_results + skin_condition_results
+        all_results = product_results + concept_results
         all_results.sort(key=lambda x: x["similarity"], reverse=True)
         
         # Limit to top_n overall if searching both tables
@@ -180,20 +179,20 @@ def main():
         print("-" * 80)
         
         for i, result in enumerate(all_results, 1):
-            result_type = "Product" if result["type"] == "product" else "Skin Condition"
-            print(f"{i}. [{result_type}] {result['name']} (ID: {result['id']})")
-            print(f"   Similarity: {result['similarity']:.4f}")
-            
             if result["type"] == "product":
+                result_type = "Product"
+                print(f"{i}. [{result_type}] {result['name']} (ID: {result['id']})")
+                print(f"   Similarity: {result['similarity']:.4f}")
+                
                 # Get key benefits if available
-                key_benefits = result['original_data'].get('keyBenefits', '')
+                key_benefits = result.get('key_benefits', '')
                 if key_benefits:
-                    if isinstance(key_benefits, list):
-                        key_benefits = ', '.join(key_benefits)
                     print(f"   Key Benefits: {key_benefits[:150]}..." if len(str(key_benefits)) > 150 else f"   Key Benefits: {key_benefits}")
             else:
-                # Show beginning of description for skin conditions
-                print(f"   Description: {result['description'][:150]}..." if len(result['description']) > 150 else f"   Description: {result['description']}")
+                result_type = "Concept"
+                print(f"{i}. [{result_type}] {result['name']} (ID: {result['id']}) - {result['concept_type']}")
+                print(f"   Similarity: {result['similarity']:.4f}")
+                print(f"   Description: {result['description']}")
                 
             print("-" * 80)
         

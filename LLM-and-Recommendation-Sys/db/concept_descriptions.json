@@ -1,0 +1,86 @@
+[
+  {
+    "id": 1,
+    "name": "Spots",
+    "type": "skin_concern",
+    "description": "Spots are dark patches or marks that appear on the skin, commonly caused by post-inflammatory hyperpigmentation (after acne), sun damage, or hormonal imbalances such as melasma. They typically occur when excess melanin accumulates in a specific area. To effectively reduce the appearance of spots, active ingredients that brighten, inhibit melanin production, and promote gentle exfoliation are essential. Niacinamide is widely used for its brightening and anti-inflammatory properties, while Vitamin C acts as an antioxidant and fades pigmentation. Azelaic acid targets pigmentation and acne simultaneously. Tranexamic acid is effective in treating stubborn melasma and post-acne marks. Recommended products for spots include brightening serums, pigmentation correctors, and gentle exfoliating creams that contain these actives."
+  },
+  {
+    "id": 2,
+    "name": "Texture",
+    "type": "skin_concern",
+    "description": "Uneven skin texture refers to rough patches, small bumps, or irregular skin surface caused by a buildup of dead skin cells, clogged pores, or lack of hydration. It can make the skin appear dull or feel rough to the touch. To improve texture, exfoliating acids like AHAs (glycolic or lactic acid) or PHAs (gentler alternatives) help remove dead skin cells and promote smoother skin. Retinol enhances cell turnover and collagen production, leading to refined texture over time. The best product options are resurfacing serums, exfoliating toners, and gentle acid-based masks applied regularly as part of a nighttime routine."
+  },
+  {
+    "id": 3,
+    "name": "Dark Circles",
+    "type": "skin_concern",
+    "description": "Dark circles are discoloration under the eyes, often caused by genetics, thin skin revealing blood vessels, hyperpigmentation, fatigue, or aging. They can appear blue, brown, or purple depending on their origin. Caffeine is highly effective in reducing puffiness and vasoconstricting blood vessels. Vitamin C and Niacinamide help brighten the area and reduce pigmentation. Peptides improve skin thickness and elasticity, preventing shadowing. Ideal product forms include under-eye creams with brightening agents, depuffing roller gels, and peptide-enriched serums for skin renewal."
+  },
+  {
+    "id": 4,
+    "name": "Oiliness",
+    "type": "skin_concern",
+    "description": "Oily skin is characterized by excessive sebum production, often leading to clogged pores, shiny appearance, and higher acne risk. It’s more common in younger individuals or those in humid climates. Niacinamide helps regulate oil production and reduce shine. Zinc PCA has sebum-regulating and antimicrobial properties. Clay (such as kaolin or bentonite) can absorb excess oil and detoxify pores. Green tea extract reduces inflammation while balancing sebum levels. Recommended products include lightweight gel cleansers, oil-control moisturizers, and mattifying primers or serums specifically designed for oily skin."
+  },
+  {
+    "id": 5,
+    "name": "Acne",
+    "type": "skin_concern",
+    "description": "Acne is a chronic inflammatory skin condition involving blackheads, whiteheads, papules, pustules, or cysts. It is caused by a combination of clogged pores, excess oil, bacteria, and inflammation. Salicylic acid is a beta hydroxy acid that penetrates pores to unclog them. Benzoyl peroxide kills acne-causing bacteria. Retinoids regulate skin cell turnover and reduce pore blockages. Tea tree oil is a natural antibacterial agent. Effective acne-focused products include anti-acne cleansers, spot treatments, and lightweight moisturizers that are non-comedogenic and soothing."
+  },
+  {
+    "id": 6,
+    "name": "Droopy Lower Eyelid",
+    "type": "skin_concern",
+    "description": "Sagging or drooping of the lower eyelid is a common aging concern caused by loss of skin elasticity, weakening of muscles, or fat shifting downward. Peptides improve firmness by boosting collagen and elastin synthesis. Caffeine reduces puffiness and tightens the area. Hyaluronic acid adds volume and hydration. Low-dose retinol improves elasticity over time without irritating the thin eye area. Targeted products include firming eye creams, collagen-boosting eye serums, and lifting patches specifically for the under-eye region."
+  },
+  {
+    "id": 7,
+    "name": "Radiance",
+    "type": "skin_concern",
+    "description": "Lack of radiance refers to a dull, tired, or sallow complexion lacking a natural glow. It is often caused by stress, pollution, slow cell turnover, dehydration, or insufficient exfoliation. Vitamin C provides antioxidant protection and brightening. Licorice root and mandelic acid help fade uneven tone. Ferulic acid enhances the stability of other antioxidants and boosts brightness. Glow-enhancing serums, antioxidant-rich moisturizers, and daily exfoliating tonics are ideal to restore radiance and promote skin clarity."
+  },
+  {
+    "id": 8,
+    "name": "Wrinkles",
+    "type": "skin_concern",
+    "description": "Wrinkles form as fine lines or deeper folds in the skin due to aging, sun damage, and reduced collagen production. They often first appear around the eyes, mouth, and forehead. Retinol is the gold standard for wrinkle treatment, improving collagen synthesis and cell turnover. Peptides help restructure the skin matrix. Bakuchiol is a gentler, plant-based alternative to retinol. Hyaluronic acid plumps fine lines by attracting moisture. Effective products include retinol serums, night creams with anti-aging peptides, and deeply hydrating wrinkle-reducing formulas."
+  },
+  {
+    "id": 9,
+    "name": "Eyebag",
+    "type": "skin_concern",
+    "description": "Eyebags refer to puffiness and swelling beneath the eyes, often due to fluid retention, poor sleep, or fat redistribution with age. Caffeine is excellent for reducing puffiness. Peptides restore firmness. Cold-based therapies (like cryo rollers or chilled eye masks) help constrict blood vessels. Cooling eye gels, depuffing creams with metal applicators, and under-eye masks with active ingredients are the go-to options."
+  },
+  {
+    "id": 10,
+    "name": "Moisture",
+    "type": "skin_concern",
+    "description": "Dry or dehydrated skin feels tight, rough, or flaky. It may result from climate, aging, or impaired barrier function. Unlike dry skin (lacking oil), dehydration means lack of water. Hyaluronic acid draws water into the skin. Glycerin is a humectant that improves hydration. Ceramides repair the skin barrier. Squalane provides non-greasy moisture. Hydrating serums, rich moisturizers, and night masks are essential for restoring water balance and smoothness."
+  },
+  {
+    "id": 11,
+    "name": "Redness",
+    "type": "skin_concern",
+    "description": "Redness appears as diffuse or patchy pink to red tones across the face, caused by irritation, rosacea, allergies, or over-exfoliation. Centella Asiatica (Cica) calms inflammation. Azelaic acid reduces redness and acne simultaneously. Niacinamide strengthens the skin barrier. Green tea extract soothes and provides antioxidants. Soothing creams, anti-redness serums, and barrier-repairing moisturizers with gentle formulas are ideal for calming the skin."
+  },
+  {
+    "id": 12,
+    "name": "Droopy Upper Eyelid",
+    "type": "skin_concern",
+    "description": "Drooping or hooded upper eyelids often occur due to aging or loss of skin firmness in the brow area. This can also cause visual fatigue. Peptides and caffeine help tighten the upper lid. Film-forming polymers offer instant lifting effects. Retinol improves collagen but must be used carefully on the thin lid skin. Recommended products include upper-eyelid lifting creams, firming gels, or eye serums with targeted applicators."
+  },
+  {
+    "id": 13,
+    "name": "Firmness",
+    "type": "skin_concern",
+    "description": "Loss of firmness refers to sagging, loose skin often found along the jawline, cheeks, and under the eyes. It’s linked to collagen loss, sun exposure, and gravity. Collagen peptides stimulate dermal strength. DMAE provides an instant tightening effect. Resveratrol offers antioxidant protection. Retinol boosts firmness long-term. Sculpting serums, skin-firming creams, and lifting ampoules are best suited for firming routines."
+  },
+  {
+    "id": 14,
+    "name": "Pores",
+    "type": "skin_concern",
+    "description": "Visible or enlarged pores result from oily skin, aging, sun damage, or genetics. They can become clogged, leading to breakouts or texture issues. Niacinamide tightens pores and controls oil. Salicylic acid clears out debris. Witch hazel tones and refreshes the skin. Zinc reduces inflammation and and sebum production. Pore-refining toners, lightweight mattifying serums, and sebum-balancing treatments are ideal solutions."
+  }
+]
