@@ -22,9 +22,9 @@ from typing import List, Dict, Set, Tuple, Optional
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, parent_dir)
 
-from utility.get_preference import get_user_analysis
+from utility.get_preference import get_preference
 from mapping import AllergenicIngredients
-from filtering_products.allergen_detector import default_detector
+from filtering_products.allergen.allergen_detector import default_detector
 from db.connection import get_database_manager
 
 
@@ -54,7 +54,7 @@ class AllergenFilter:
         print(f"📡 Fetching preferences for user {user_id}...")
         
         # Get user preferences from API
-        preferences = get_user_analysis(user_id)
+        preferences = get_preference(user_id)
         if not preferences:
             print(f"❌ Failed to fetch preferences for user {user_id}")
             return [], {}
