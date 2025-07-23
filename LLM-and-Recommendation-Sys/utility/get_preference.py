@@ -12,4 +12,4 @@ def get_preference(user_id: int):
         return response.json()
     except requests.RequestException as e:
         print(f"Failed to fetch analysis for user {user_id}: {e}")
-    
+        
